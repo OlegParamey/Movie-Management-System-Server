@@ -1,6 +1,9 @@
 import { Request, Response } from 'express'
 import { Movie } from '../models/Movie'
 import { HttpError } from '../utils/httpError'
+import { MovieList } from '../models/MovieList'
+import { Review } from '../models/Review'
+
 
 const SORTABLE: Record<string, string> = {
     title: 'title',
@@ -57,4 +60,48 @@ export async function getMovie(req: Request, res: Response) {
 export async function createMovie(req: Request, res: Response) {
     const movie = await Movie.create(req.body)
     res.status(201).json(movie)
+}
+
+
+
+export async function updateMovie(req: Request, res: Response) {
+    const { title, year, genres, director, cast, description, posterUrl } =
+        req.body
+
+    const movie = await Movie.findByIdAndUpdate(
+        req.params.id,
+        {
+            title,
+            year,
+            genres,
+            director,
+            cast,
+            description,
+            posterUrl,
+        },
+        {
+            new: true,
+            runValidators: true,
+        },
+    )
+
+    if (!movie) throw new HttpError(404, 'Movie not found')
+
+    res.json(movie)
+}
+
+export async function deleteMovie(req: Request, res: Response) {
+    const movie = await Movie.findByIdAndDelete(req.params.id)
+
+    if (!movie) throw new HttpError(404, 'Movie not found')
+
+
+            await MovieList.updateMany(
+        { movies: movie._id },
+        { $pull: { movies: movie._id } },
+    )
+
+    await Review.deleteMany({ movie: movie._id })
+
+    res.json({ message: 'Movie deleted' })
 }
